@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"math/rand"
 	"os"
 	"strings"
@@ -21,6 +22,12 @@ accurate psuedocode:
 	)
 
 Only output weights will change.
+
+Reading output from the system:
+
+  output[n] = sigmoid(
+		outputWeight[n] * (reservoirFiringState[n] + inputWeights[n])
+  )
 */
 
 // TODO: make output weights a separate thing
@@ -38,6 +45,7 @@ var saveFile = "echo.json"
 
 type reservoirCell int
 type outputCell int
+type inputCell int
 type weight float32
 type char string
 
@@ -77,19 +85,19 @@ func main() {
 	// outputCells where the index is its ID and the string is a single character
 	var outputValues []char
 	// testInputCells lists the inputs to be fired
-	var testInputCells []int
+	var testInputCells []inputCell
 	// inputValueToCell is for looking up an input index from value
-	var inputValueToCell = make(map[char]int)
+	var inputValueToCell = make(map[char]inputCell)
 	// inputCellToValue is for looking up an input value from index
 	var inputCellToValue []char
 
 	// format test data
-	testInputCells = make([]int, len(testData))
+	testInputCells = make([]inputCell, len(testData))
 	for charIndex, c := range testData {
 		character := char(c)
 		if _, hasInput := inputValueToCell[character]; !hasInput {
 			inputCellToValue = append(inputCellToValue, character)
-			inputValueToCell[character] = len(inputCellToValue) - 1
+			inputValueToCell[character] = inputCell(len(inputCellToValue) - 1)
 			outputValues = append(outputValues, char(character))
 		}
 		testInputCells[charIndex] = inputValueToCell[character]
@@ -139,26 +147,28 @@ func main() {
 		reservoirWeights[i] = randWeight()
 	}
 
-	// Training
+	ss := saveState{
+		Reservoir:         reservoir,
+		ReservoirWeights:  reservoirWeights,
+		ReservoirToOutput: reservoirToOutput,
+		InputValueToCell:  inputValueToCell,
+		InputCellToValue:  inputCellToValue,
+	}
 
-}
-
-func randReservoirCell(max int) reservoirCell {
-	return reservoirCell(rand.Intn(max))
-}
-
-func randWeight() weight {
-	return weight(rand.Float32())
 }
 
 type saveState struct {
-	reservoir         [][]reservoirCell
-	reservoirWeights  []weight
-	reservoirToOutput map[reservoirCell][]outputCell
-	inputValueToCell  map[string]int
-	inputCellToValue  []string
-	inputWeights      []weight
-	outputToReservoir map[outputCell][]reservoirCell
+	Reservoir         [][]reservoirCell
+	ReservoirWeights  []weight
+	ReservoirToOutput map[reservoirCell][]outputCell
+	InputValueToCell  map[char]inputCell
+	InputCellToValue  []char
+	InputWeights      []weight
+	OutputToReservoir map[outputCell][]reservoirCell
+}
+
+func (ss *saveState) step() {
+
 }
 
 func (ss *saveState) save() {
@@ -171,4 +181,16 @@ func (ss *saveState) save() {
 	if err != nil {
 		fmt.Println("Failed saving saveState", err, ss)
 	}
+}
+
+func randReservoirCell(max int) reservoirCell {
+	return reservoirCell(rand.Intn(max))
+}
+
+func randWeight() weight {
+	return weight(rand.Float32())
+}
+
+func sigmoid(t float32) float32 {
+	return float32(1 / (1 + math.Exp(e, float64(-t))))
 }
