@@ -1,14 +1,17 @@
 package main
 
 import (
+	"C"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math"
 	"math/rand"
 	"os"
 	"strings"
 	"time"
+)
+import (
+	"math"
 )
 
 /*
@@ -147,14 +150,21 @@ func main() {
 		reservoirWeights[i] = randWeight()
 	}
 
-	ss := saveState{
+	ss := &saveState{
 		Reservoir:         reservoir,
 		ReservoirWeights:  reservoirWeights,
 		ReservoirToOutput: reservoirToOutput,
 		InputValueToCell:  inputValueToCell,
 		InputCellToValue:  inputCellToValue,
+		InputWeights:      inputWeights,
+		OutputToReservoir: outputToReservoir,
+
+		reservoirFiringState: reservoirFiringState,
+		testInputCells:       testInputCells,
 	}
 
+	ss.step()
+	ss.save()
 }
 
 type saveState struct {
@@ -165,10 +175,30 @@ type saveState struct {
 	InputCellToValue  []char
 	InputWeights      []weight
 	OutputToReservoir map[outputCell][]reservoirCell
+
+	reservoirFiringState []weight
+	testInputCells       []inputCell
 }
 
-func (ss *saveState) step() {
+/*
+step runs one round through all the test input cells and backpropagates the
+output cell connections.
 
+reservoirFiringState[n + 1] = sigmoid(
+	reservoirWeights[n]
+	+ reservoirCell[inputReservoirCells[n + 1]]*inputWeights[n+1]
+	+ reservoirToOutput[reservoirWeights[n]]
+)
+*/
+func (ss *saveState) step() {
+	for i := 0; i < len(ss.testInputCells); i++ {
+
+	}
+}
+
+func (ss *saveState) sample(seed string) (result string) {
+
+	return result
 }
 
 func (ss *saveState) save() {
@@ -183,6 +213,15 @@ func (ss *saveState) save() {
 	}
 }
 
+func loadState(filename string) (ss *saveState, err error) {
+	buf, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return ss, err
+	}
+	err = json.Unmarshal(buf, &ss)
+	return ss, err
+}
+
 func randReservoirCell(max int) reservoirCell {
 	return reservoirCell(rand.Intn(max))
 }
@@ -192,5 +231,5 @@ func randWeight() weight {
 }
 
 func sigmoid(t float32) float32 {
-	return float32(1 / (1 + math.Exp(e, float64(-t))))
+	return float32(1 / (1 + math.Exp(float64(-t))))
 }
