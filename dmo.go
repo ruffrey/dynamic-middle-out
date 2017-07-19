@@ -14,25 +14,6 @@ import (
 	"math"
 )
 
-/*
-Approximately the following, which is missing loops but nearly
-accurate psuedocode:
-
-	reservoirFiringState[n + 1] = sigmoid(
-		reservoirWeights[n]
-		+ reservoirCell[inputReservoirCells[n + 1]]*inputWeights[n+1]
-		+ reservoirToOutput[reservoirWeights[n]]
-	)
-
-Only output weights will change.
-
-Reading output from the system:
-
-  output[n] = sigmoid(
-		outputWeight[n] * (reservoirFiringState[n] + inputWeights[n])
-  )
-*/
-
 // TODO: make output weights a separate thing
 
 // meta params
@@ -40,9 +21,6 @@ Reading output from the system:
 var reservoirSize = 200 // N
 var stepsPerInput = 100 // n
 var discardRounds = 50
-var reservoirPostsynapticCount = 10
-var inputPostsyapticCount = 4
-var outputPresynapticCount = 4
 
 var saveFile = "echo.json"
 
@@ -118,9 +96,9 @@ func main() {
 
 	// Add synapses
 
-	// each input cell connects to the reservoir
+	// each input cell connects to each reservoir cell
 	for i := 0; i < totalInputCells; i++ {
-		for synapse := 0; synapse < inputPostsyapticCount; synapse++ {
+		for synapse := 0; synapse < len(reservoir); synapse++ {
 			// this input cell will fire a random reservoir cell
 			inputReservoirCells[i] = append(inputReservoirCells[i], randReservoirCell(reservoirSize))
 		}
@@ -131,10 +109,8 @@ func main() {
 	// each output cell receives from the reservoir
 	for i := 0; i < totalOutputCells; i++ {
 		oc := outputCell(i)
-		// not a normal loop in case of duplicate random values
-		for len(outputToReservoir[oc]) < outputPresynapticCount {
+		for r := 0; r < len(reservoir); r++ {
 			// this output cell will be fired by a random reservoir cell
-			rr := randReservoirCell(reservoirSize)
 			reservoirToOutput[rr] = append(reservoirToOutput[rr], oc)
 			outputToReservoir[oc] = append(outputToReservoir[oc], rr)
 		}
@@ -185,8 +161,8 @@ step runs one round through all the test input cells and backpropagates the
 output cell connections.
 
 reservoirFiringState[n + 1] = sigmoid(
-	reservoirWeights[n]
-	+ reservoirCell[inputReservoirCells[n + 1]]*inputWeights[n+1]
+	reservoirFiringState[n] * reservoirWeights[n]
+	+ reservoirCell[inputReservoirCells[n + 1]] * inputWeights[n+1]
 	+ reservoirToOutput[reservoirWeights[n]]
 )
 */
@@ -196,6 +172,13 @@ func (ss *saveState) step() {
 	}
 }
 
+/*
+sample reads an output value from the system
+
+	output[n] = sigmoid(
+		outputWeight[n] * (reservoirFiringState[n] + inputWeights[n])
+  )
+*/
 func (ss *saveState) sample(seed string) (result string) {
 
 	return result
